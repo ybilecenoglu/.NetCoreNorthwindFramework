@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Web.Helpers;
+using AutoMapper;
 using CoreTestFramework.Core.Common;
 using CoreTestFramework.Northwind.Business.Abstract;
 using CoreTestFramework.Northwind.Entities.Concrate;
@@ -7,6 +8,7 @@ using CoreTestFramework.Northwind.WebMvcUI.Extension;
 using CoreTestFramework.Northwind.WebMvcUI.ViewModels;
 using DataTables.AspNet.AspNetCore;
 using DataTables.AspNet.Core;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -207,17 +209,13 @@ namespace CoreTestFramework.Northwind.WebMvcUI.Controllers
              
              return RedirectToAction("Index");
         }
+        
         [HttpPost]
         public async Task<IActionResult> Edit(ProductViewModel vm = null)
         {
             var result = new Result{ Success = false};
             try
             {
-                if (ModelState.IsValid)
-                {
-                    if(ViewBag.ProductID == vm.Product.ProductID){
-
-                    }
                     var get_product_result = await _productService.GetProductAsync(vm.Product.ProductID);
                     if (get_product_result.Success && get_product_result.Data != null)
                     {
@@ -241,27 +239,35 @@ namespace CoreTestFramework.Northwind.WebMvcUI.Controllers
                         {
                            result.Message = update_result.Message;
                            TempData["result"] = JsonConvert.SerializeObject(result);
-                           return View(vm);
+                           return Json(result);
                         }
                     }
                     else {
                         result.Message = "Güncellenecek ürün bulunamadı";
                         TempData["result"] = JsonConvert.SerializeObject(result);
-                        return PartialView(vm);
+                        return Json(result);
                     }
-                }
+            }
+            catch (ValidationException validationEx)
+            {
+                    foreach (var error in validationEx.Errors)
+                    {
+                        result.Messages.Add(error.ErrorMessage);
+                    }
+                    return Json(result);
             }
             catch (System.Exception ex)
             {
                 result.Message = ex.Message;
                 TempData["result"] = JsonConvert.SerializeObject(result);
-                return View(vm);
+                return Json(result);
             }
+             
              result.Success = true;
              result.Message = $"{vm.Product.ProductName} güncelleme işlemi başarıyla gerçekleşti";
              TempData["result"] = JsonConvert.SerializeObject(result);
-
-            return RedirectToAction("Index");
+             
+             return Json(result);
         }
         public async Task<IActionResult> Create()
         {
@@ -275,7 +281,6 @@ namespace CoreTestFramework.Northwind.WebMvcUI.Controllers
             }
             catch (System.Exception)
             {
-                
                 throw;
             }
             return View(viewModel);
@@ -306,6 +311,19 @@ namespace CoreTestFramework.Northwind.WebMvcUI.Controllers
                     TempData["result"] = JsonConvert.SerializeObject(result);
                     return View(vm);
                 }
+            }
+            catch(ValidationException validationEx){
+                    
+                    foreach (var error in validationEx.Errors)
+                    {
+                        ModelState.AddModelError("Hata",error.ErrorMessage);
+                    }
+                    var categories = await _northwindContext.Categories.ToListAsync();
+                    vm.Categories = new SelectList(categories, "CategoryID","CategoryName", vm.CategoryID);
+                    var suppliers = await _northwindContext.Suppliers.ToListAsync();
+                    vm.Suppliers = new SelectList(suppliers, "SupplierID", "CompanyName", vm.SupplierID);
+                    return View(vm);
+
             }
             catch (System.Exception  ex)
             {

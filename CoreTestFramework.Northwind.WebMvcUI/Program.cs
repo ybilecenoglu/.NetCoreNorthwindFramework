@@ -4,7 +4,6 @@ using CoreTestFramework.Northwind.DataAccess.Concrate;
 using CoreTestFramework.Northwind.Entities.Concrate;
 using CoreTestFramework.Northwind.WebMvcUI.Common;
 using DataTables.AspNet.AspNetCore;
-
 var builder = WebApplication.CreateBuilder(args);
 
 //Database Connection
@@ -17,10 +16,15 @@ var builder = WebApplication.CreateBuilder(args);
 //mvc, restapi, razorpages şablonları ile çalışabiliriz. Hangi şablon ile çalışacaksak belirtiyoruz.
 builder.Services.AddRazorPages();
 builder.Services.AddControllersWithViews();
-
 builder.Services.AddTransient<NorthwindContext>();
 builder.Services.AddSingleton<ProductDAL>();
 builder.Services.AddSingleton<IProductService, ProductManager>();
+
+//JSON serileştirmesini yapılandırmaası lowercase için
+builder.Services.AddControllers().AddJsonOptions(jsonOptions =>
+    {
+        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
 // builder.Services.AddRouting(option => option.LowercaseUrls = true);
 
